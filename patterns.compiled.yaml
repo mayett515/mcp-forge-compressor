@@ -1,0 +1,568 @@
+# ==========================================
+# patterns.compiled.yaml
+# AUTO-GENERATED — DO NOT EDIT
+# Generated: 2026-03-26T21:27:52.437Z
+# Total patterns: 56
+# Languages: js, ts
+# Run: node compile-patterns.js to regenerate
+# ==========================================
+
+meta:
+  generated_at: "2026-03-26T21:27:52.437Z"
+  total_patterns: 56
+  languages:
+    - js
+    - ts
+  sources:
+    - patterns\js\core.data.yaml
+    - patterns\js\express.logic.yaml
+    - patterns\js\react.logic.yaml
+    - patterns\js\vue.logic.yaml
+    - patterns\ts\core.data.yaml
+    - patterns\ts\nestjs.logic.yaml
+patterns:
+  - id: js-function
+    lang: js
+    label: function {name}{params}
+    target:
+      kind: function_declaration
+    source: patterns\js\core.data.yaml
+  - id: js-async-function
+    lang: js
+    label: async function {name}{params}
+    target:
+      kind: function_declaration
+      modifiers:
+        - async
+    source: patterns\js\core.data.yaml
+  - id: js-arrow-function
+    lang: js
+    label: const {name} = {params} =>
+    target:
+      kind: arrow_function
+    source: patterns\js\core.data.yaml
+  - id: js-async-arrow-function
+    lang: js
+    label: const {name} = async {params} =>
+    target:
+      kind: arrow_function
+      modifiers:
+        - async
+    source: patterns\js\core.data.yaml
+  - id: js-class
+    lang: js
+    label: class {name}
+    target:
+      kind: class_declaration
+    source: patterns\js\core.data.yaml
+  - id: js-module-exports
+    lang: js
+    label: module.exports = {exports}
+    target:
+      kind: expression_statement
+      object: module
+      property: exports
+    source: patterns\js\core.data.yaml
+  - id: express-get
+    lang: js
+    framework: express
+    label: "Route: {object}.get({path})"
+    target:
+      kind: expression_statement
+    match: |
+      ANY child IN node.children WHERE (
+        child.method_call == app.get OR
+        child.method_call == router.get
+      )
+    source: patterns\js\express.logic.yaml
+  - id: express-post
+    lang: js
+    framework: express
+    label: "Route: {object}.post({path})"
+    target:
+      kind: expression_statement
+    match: |
+      ANY child IN node.children WHERE (
+        child.method_call == app.post OR
+        child.method_call == router.post
+      )
+    source: patterns\js\express.logic.yaml
+  - id: express-put
+    lang: js
+    framework: express
+    label: "Route: {object}.put({path})"
+    target:
+      kind: expression_statement
+    match: |
+      ANY child IN node.children WHERE (
+        child.method_call == app.put OR
+        child.method_call == router.put
+      )
+    source: patterns\js\express.logic.yaml
+  - id: express-patch
+    lang: js
+    framework: express
+    label: "Route: {object}.patch({path})"
+    target:
+      kind: expression_statement
+    match: |
+      ANY child IN node.children WHERE (
+        child.method_call == app.patch OR
+        child.method_call == router.patch
+      )
+    source: patterns\js\express.logic.yaml
+  - id: express-delete
+    lang: js
+    framework: express
+    label: "Route: {object}.delete({path})"
+    target:
+      kind: expression_statement
+    match: |
+      ANY child IN node.children WHERE (
+        child.method_call == app.delete OR
+        child.method_call == router.delete
+      )
+    source: patterns\js\express.logic.yaml
+  - id: express-use
+    lang: js
+    framework: express
+    label: "Middleware: {object}.use({path})"
+    target:
+      kind: expression_statement
+    match: |
+      ANY child IN node.children WHERE (
+        child.method_call == app.use OR
+        child.method_call == router.use
+      )
+    source: patterns\js\express.logic.yaml
+  - id: express-router
+    lang: js
+    framework: express
+    label: "Router: {name} = express.Router()"
+    target:
+      kind: lexical_declaration
+    match: |
+      ANY declarator IN node.children WHERE (
+        declarator.method_call == express.Router
+      )
+    source: patterns\js\express.logic.yaml
+  - id: react-state
+    lang: js
+    framework: react
+    label: "State: {declaration}"
+    target:
+      kind: lexical_declaration
+    match: |
+      ANY declarator IN node.children WHERE (
+        declarator.call == useState OR declarator.call == useReducer
+      )
+    source: patterns\js\react.logic.yaml
+  - id: react-effect
+    lang: js
+    framework: react
+    label: "Effect: {call}(() => {...}, [{deps}])"
+    target:
+      kind: expression_statement
+    match: |
+      ANY child IN node.children WHERE (
+        child.call == useEffect OR child.call == useLayoutEffect
+      )
+    source: patterns\js\react.logic.yaml
+  - id: react-context
+    lang: js
+    framework: react
+    label: "Context: {declaration}"
+    target:
+      kind: lexical_declaration
+    match: |
+      ANY declarator IN node.children WHERE (
+        declarator.call == useContext
+      )
+    source: patterns\js\react.logic.yaml
+  - id: react-ref
+    lang: js
+    framework: react
+    label: "Ref: {declaration}"
+    target:
+      kind: lexical_declaration
+    match: |
+      ANY declarator IN node.children WHERE (
+        declarator.call == useRef
+      )
+    source: patterns\js\react.logic.yaml
+  - id: react-memo
+    lang: js
+    framework: react
+    label: "Memo: {declaration}"
+    target:
+      kind: lexical_declaration
+    match: |
+      ANY declarator IN node.children WHERE (
+        declarator.call == useMemo OR declarator.call == useCallback
+      )
+    source: patterns\js\react.logic.yaml
+  - id: react-custom-hook
+    lang: js
+    framework: react
+    label: "Hook: {name}{params}"
+    target:
+      kind: function_declaration
+    match: |
+      node.name starts_with use AND
+      node.name != useEffect AND
+      node.name != useState AND
+      node.name != useReducer AND
+      node.name != useContext AND
+      node.name != useRef AND
+      node.name != useMemo AND
+      node.name != useCallback AND
+      node.name != useLayoutEffect
+    source: patterns\js\react.logic.yaml
+  - id: react-component
+    lang: js
+    framework: react
+    label: "Component: {name}{params}"
+    target:
+      kind: function_declaration
+    match: |
+      node.name starts_with_capital
+    source: patterns\js\react.logic.yaml
+  - id: vue-ref
+    lang: js
+    framework: vue
+    label: "Ref: {declaration}"
+    target:
+      kind: lexical_declaration
+    match: |
+      ANY declarator IN node.children WHERE (
+        declarator.call == ref
+      )
+    source: patterns\js\vue.logic.yaml
+  - id: vue-reactive
+    lang: js
+    framework: vue
+    label: "Reactive: {declaration}"
+    target:
+      kind: lexical_declaration
+    match: |
+      ANY declarator IN node.children WHERE (
+        declarator.call == reactive
+      )
+    source: patterns\js\vue.logic.yaml
+  - id: vue-computed
+    lang: js
+    framework: vue
+    label: "Computed: {declaration}"
+    target:
+      kind: lexical_declaration
+    match: |
+      ANY declarator IN node.children WHERE (
+        declarator.call == computed
+      )
+    source: patterns\js\vue.logic.yaml
+  - id: vue-watch
+    lang: js
+    framework: vue
+    label: "Watch: {declaration}"
+    target:
+      kind: expression_statement
+    match: |
+      ANY child IN node.children WHERE (
+        child.call == watch
+      )
+    source: patterns\js\vue.logic.yaml
+  - id: vue-watch-effect
+    lang: js
+    framework: vue
+    label: "WatchEffect: {declaration}"
+    target:
+      kind: expression_statement
+    match: |
+      ANY child IN node.children WHERE (
+        child.call == watchEffect
+      )
+    source: patterns\js\vue.logic.yaml
+  - id: vue-define-component
+    lang: js
+    framework: vue
+    label: "Component: {name}"
+    target:
+      kind: lexical_declaration
+    match: |
+      ANY declarator IN node.children WHERE (
+        declarator.call == defineComponent
+      )
+    source: patterns\js\vue.logic.yaml
+  - id: vue-define-props
+    lang: js
+    framework: vue
+    label: "Props: {declaration}"
+    target:
+      kind: lexical_declaration
+    match: |
+      ANY declarator IN node.children WHERE (
+        declarator.call == defineProps
+      )
+    source: patterns\js\vue.logic.yaml
+  - id: vue-define-emits
+    lang: js
+    framework: vue
+    label: "Emits: {declaration}"
+    target:
+      kind: lexical_declaration
+    match: |
+      ANY declarator IN node.children WHERE (
+        declarator.call == defineEmits
+      )
+    source: patterns\js\vue.logic.yaml
+  - id: vue-lifecycle
+    lang: js
+    framework: vue
+    label: "Lifecycle: {call}(() => {...})"
+    target:
+      kind: expression_statement
+    match: |
+      ANY child IN node.children WHERE (
+        child.call == onMounted OR
+        child.call == onUnmounted OR
+        child.call == onCreated OR
+        child.call == onBeforeMount OR
+        child.call == onBeforeUnmount OR
+        child.call == onUpdated OR
+        child.call == onBeforeUpdate
+      )
+    source: patterns\js\vue.logic.yaml
+  - id: ts-function
+    lang: ts
+    label: function {name}{params}{returnType}
+    target:
+      kind: function_declaration
+    source: patterns\ts\core.data.yaml
+  - id: ts-async-function
+    lang: ts
+    label: async function {name}{params}{returnType}
+    target:
+      kind: function_declaration
+      modifiers:
+        - async
+    source: patterns\ts\core.data.yaml
+  - id: ts-arrow-function
+    lang: ts
+    label: const {name} = {params}{returnType} =>
+    target:
+      kind: arrow_function
+    source: patterns\ts\core.data.yaml
+  - id: ts-async-arrow-function
+    lang: ts
+    label: const {name} = async {params}{returnType} =>
+    target:
+      kind: arrow_function
+      modifiers:
+        - async
+    source: patterns\ts\core.data.yaml
+  - id: ts-class
+    lang: ts
+    label: class {name}
+    target:
+      kind: class_declaration
+    source: patterns\ts\core.data.yaml
+  - id: ts-abstract-class
+    lang: ts
+    label: abstract class {name}
+    target:
+      kind: abstract_class_declaration
+    source: patterns\ts\core.data.yaml
+  - id: ts-interface
+    lang: ts
+    label: interface {name} {members}
+    target:
+      kind: interface_declaration
+    source: patterns\ts\core.data.yaml
+  - id: ts-type-alias
+    lang: ts
+    label: type {name}
+    target:
+      kind: type_alias_declaration
+    source: patterns\ts\core.data.yaml
+  - id: ts-enum
+    lang: ts
+    label: enum {name} {members}
+    target:
+      kind: enum_declaration
+    source: patterns\ts\core.data.yaml
+  - id: ts-generic-function
+    lang: ts
+    label: function {name}<{typeParams}>{params}{returnType}
+    target:
+      kind: function_declaration
+      has_type_parameters: true
+    source: patterns\ts\core.data.yaml
+  - id: ts-export-function
+    lang: ts
+    label: export function {name}{params}{returnType}
+    target:
+      kind: function_declaration
+      modifiers:
+        - export
+    source: patterns\ts\core.data.yaml
+  - id: ts-export-class
+    lang: ts
+    label: export class {name}
+    target:
+      kind: class_declaration
+      modifiers:
+        - export
+    source: patterns\ts\core.data.yaml
+  - id: ts-export-interface
+    lang: ts
+    label: export interface {name} {members}
+    target:
+      kind: interface_declaration
+      modifiers:
+        - export
+    source: patterns\ts\core.data.yaml
+  - id: ts-export-type
+    lang: ts
+    label: export type {name}
+    target:
+      kind: type_alias_declaration
+      modifiers:
+        - export
+    source: patterns\ts\core.data.yaml
+  - id: ts-export-enum
+    lang: ts
+    label: export enum {name} {members}
+    target:
+      kind: enum_declaration
+      modifiers:
+        - export
+    source: patterns\ts\core.data.yaml
+  - id: ts-export-default
+    lang: ts
+    label: export default {name}
+    target:
+      kind: export_statement
+      modifiers:
+        - default
+    source: patterns\ts\core.data.yaml
+  - id: nestjs-controller
+    lang: ts
+    framework: nestjs
+    label: "Controller: {name}"
+    target:
+      kind: class_declaration
+    match: |
+      ANY decorator IN node.decorators WHERE (
+        decorator.name == Controller
+      )
+    source: patterns\ts\nestjs.logic.yaml
+  - id: nestjs-injectable
+    lang: ts
+    framework: nestjs
+    label: "Injectable: {name}"
+    target:
+      kind: class_declaration
+    match: |
+      ANY decorator IN node.decorators WHERE (
+        decorator.name == Injectable
+      )
+    source: patterns\ts\nestjs.logic.yaml
+  - id: nestjs-module
+    lang: ts
+    framework: nestjs
+    label: "Module: {name}"
+    target:
+      kind: class_declaration
+    match: |
+      ANY decorator IN node.decorators WHERE (
+        decorator.name == Module
+      )
+    source: patterns\ts\nestjs.logic.yaml
+  - id: nestjs-get
+    lang: ts
+    framework: nestjs
+    label: "GET: {name}{params}"
+    target:
+      kind: method_definition
+    match: |
+      ANY decorator IN node.decorators WHERE (
+        decorator.name == Get
+      )
+    source: patterns\ts\nestjs.logic.yaml
+  - id: nestjs-post
+    lang: ts
+    framework: nestjs
+    label: "POST: {name}{params}"
+    target:
+      kind: method_definition
+    match: |
+      ANY decorator IN node.decorators WHERE (
+        decorator.name == Post
+      )
+    source: patterns\ts\nestjs.logic.yaml
+  - id: nestjs-put
+    lang: ts
+    framework: nestjs
+    label: "PUT: {name}{params}"
+    target:
+      kind: method_definition
+    match: |
+      ANY decorator IN node.decorators WHERE (
+        decorator.name == Put
+      )
+    source: patterns\ts\nestjs.logic.yaml
+  - id: nestjs-patch
+    lang: ts
+    framework: nestjs
+    label: "PATCH: {name}{params}"
+    target:
+      kind: method_definition
+    match: |
+      ANY decorator IN node.decorators WHERE (
+        decorator.name == Patch
+      )
+    source: patterns\ts\nestjs.logic.yaml
+  - id: nestjs-delete
+    lang: ts
+    framework: nestjs
+    label: "DELETE: {name}{params}"
+    target:
+      kind: method_definition
+    match: |
+      ANY decorator IN node.decorators WHERE (
+        decorator.name == Delete
+      )
+    source: patterns\ts\nestjs.logic.yaml
+  - id: nestjs-guard
+    lang: ts
+    framework: nestjs
+    label: "Guard: {name}"
+    target:
+      kind: method_definition
+    match: |
+      ANY decorator IN node.decorators WHERE (
+        decorator.name == UseGuards
+      )
+    source: patterns\ts\nestjs.logic.yaml
+  - id: nestjs-interceptor
+    lang: ts
+    framework: nestjs
+    label: "Interceptor: {name}"
+    target:
+      kind: method_definition
+    match: |
+      ANY decorator IN node.decorators WHERE (
+        decorator.name == UseInterceptors
+      )
+    source: patterns\ts\nestjs.logic.yaml
+  - id: nestjs-pipe
+    lang: ts
+    framework: nestjs
+    label: "Pipe: {name}"
+    target:
+      kind: method_definition
+    match: |
+      ANY decorator IN node.decorators WHERE (
+        decorator.name == UsePipes
+      )
+    source: patterns\ts\nestjs.logic.yaml

@@ -1,0 +1,112 @@
+# ==========================================
+# ts/core.data.yaml
+# Core TypeScript structural patterns
+# These apply to ALL TS files regardless of framework
+# DO NOT EDIT patterns.compiled.yaml directly
+# Run: node compile-patterns.js to recompile
+# ==========================================
+
+- id: ts-function
+  lang: ts
+  label: "function {name}{params}{returnType}"
+  target:
+    kind: function_declaration
+
+- id: ts-async-function
+  lang: ts
+  label: "async function {name}{params}{returnType}"
+  target:
+    kind: function_declaration
+    modifiers: [async]
+
+- id: ts-arrow-function
+  lang: ts
+  label: "const {name} = {params}{returnType} =>"
+  target:
+    kind: arrow_function
+
+- id: ts-async-arrow-function
+  lang: ts
+  label: "const {name} = async {params}{returnType} =>"
+  target:
+    kind: arrow_function
+    modifiers: [async]
+
+- id: ts-class
+  lang: ts
+  label: "class {name}"
+  target:
+    kind: class_declaration
+
+- id: ts-abstract-class
+  lang: ts
+  label: "abstract class {name}"
+  target:
+    kind: abstract_class_declaration
+
+- id: ts-interface
+  lang: ts
+  label: "interface {name} {members}"
+  target:
+    kind: interface_declaration
+
+- id: ts-type-alias
+  lang: ts
+  label: "type {name}"
+  target:
+    kind: type_alias_declaration
+
+- id: ts-enum
+  lang: ts
+  label: "enum {name} {members}"
+  target:
+    kind: enum_declaration
+
+- id: ts-generic-function
+  lang: ts
+  label: "function {name}<{typeParams}>{params}{returnType}"
+  target:
+    kind: function_declaration
+    has_type_parameters: true
+
+- id: ts-export-function
+  lang: ts
+  label: "export function {name}{params}{returnType}"
+  target:
+    kind: function_declaration
+    modifiers: [export]
+
+- id: ts-export-class
+  lang: ts
+  label: "export class {name}"
+  target:
+    kind: class_declaration
+    modifiers: [export]
+
+- id: ts-export-interface
+  lang: ts
+  label: "export interface {name} {members}"
+  target:
+    kind: interface_declaration
+    modifiers: [export]
+
+- id: ts-export-type
+  lang: ts
+  label: "export type {name}"
+  target:
+    kind: type_alias_declaration
+    modifiers: [export]
+
+- id: ts-export-enum
+  lang: ts
+  label: "export enum {name} {members}"
+  target:
+    kind: enum_declaration
+    modifiers: [export]
+
+- id: ts-export-default
+  lang: ts
+  label: "export default {name}"
+  target:
+    kind: export_statement
+    modifiers: [default]
