@@ -78,12 +78,41 @@ function squashImports(rootNode) {
 
 // * --- Framework Pattern Registry ---
 
+// * --- Helper: extracts the actual call expression function name from a variable declarator ---
+// ? Used to verify a lexical_declaration is genuinely CALLING a hook, not just mentioning it in text.
+function getCallExpressionName(node) {
+  for (const child of node.children) {
+    if (child.type === 'variable_declarator') {
+      const value = child.childForFieldName('value');
+      if (value && value.type === 'call_expression') {
+        return value.childForFieldName('function')?.text || null;
+      }
+    }
+  }
+  return null;
+}
+
+// * --- Helper: extracts the method name from an expression_statement call ---
+// ? e.g. useEffect(...) → 'useEffect', app.get(...) → 'app.get'
+function getExpressionCallName(node) {
+  const expr = node.children.find(c => c.type === 'call_expression' || c.type === 'await_expression');
+  if (!expr) return null;
+  const call = expr.type === 'await_expression'
+    ? expr.children.find(c => c.type === 'call_expression')
+    : expr;
+  if (!call) return null;
+  return call.childForFieldName('function')?.text || null;
+}
+
 const FRAMEWORK_PATTERNS = [
   // React State: const [x, setX] = useState(...)
   {
     test(node) {
       if (node.type !== 'lexical_declaration') return false;
-      return /\b(useState|useReducer)\s*\(/.test(node.text);
+      // FIX: Check the actual AST call expression name, not raw text.
+      // Prevents false-positive on any node whose text merely *mentions* useState (e.g. this array itself).
+      const callName = getCallExpressionName(node);
+      return callName === 'useState' || callName === 'useReducer';
     },
     label(node) {
       const decl = node.text.replace(/\s+/g, ' ').replace(/;$/, '').trim();
@@ -94,13 +123,13 @@ const FRAMEWORK_PATTERNS = [
   {
     test(node) {
       if (node.type !== 'expression_statement') return false;
-      return /\b(useEffect|useLayoutEffect)\s*\(/.test(node.text);
+      // FIX: Check actual call expression name in AST, not raw text match.
+      const callName = getExpressionCallName(node);
+      return callName === 'useEffect' || callName === 'useLayoutEffect';
     },
     label(node) {
-      // Extract the hook name
       const match = node.text.match(/\b(useEffect|useLayoutEffect)/);
       const hookName = match ? match[1] : 'useEffect';
-      // Extract dependency array if present
       const depsMatch = node.text.match(/,\s*\[([^\]]*)\]\s*\)\s*;?\s*$/);
       const deps = depsMatch ? depsMatch[1].trim() : '';
       return `Effect: ${hookName}(() => {...}, [${deps}])`;
@@ -110,7 +139,10 @@ const FRAMEWORK_PATTERNS = [
   {
     test(node) {
       if (node.type !== 'lexical_declaration') return false;
-      return /\b(ref|reactive|computed)\s*\(/.test(node.text);
+      // FIX: Check actual call expression name in AST, not raw text match.
+      // Prevents false-positive on variables whose text contains 'ref' or 'computed' as strings.
+      const callName = getCallExpressionName(node);
+      return callName === 'ref' || callName === 'reactive' || callName === 'computed';
     },
     label(node) {
       const decl = node.text.replace(/\s+/g, ' ').replace(/;$/, '').trim();
@@ -121,14 +153,16 @@ const FRAMEWORK_PATTERNS = [
   {
     test(node) {
       if (node.type !== 'expression_statement') return false;
-      return /\b(app|router)\.(get|post|put|patch|delete|use|all|options|head)\s*\(/.test(node.text);
+      // FIX: Check actual call expression name in AST, not raw text match.
+      const callName = getExpressionCallName(node);
+      if (!callName) return false;
+      return /^(app|router)\.(get|post|put|patch|delete|use|all|options|head)$/.test(callName);
     },
     label(node) {
       const match = node.text.match(/\b(app|router)\.(get|post|put|patch|delete|use|all|options|head)\s*\(\s*['"`]([^'"`]*)['"`]/);
       if (match) {
         return `Route: ${match[1]}.${match[2]}('${match[3]}')`;
       }
-      // Fallback: no string route (e.g., middleware)
       const methodMatch = node.text.match(/\b(app|router)\.(get|post|put|patch|delete|use|all|options|head)/);
       if (methodMatch) {
         return `Route: ${methodMatch[1]}.${methodMatch[2]}(...)`;
