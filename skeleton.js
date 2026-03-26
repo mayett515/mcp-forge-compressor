@@ -84,7 +84,10 @@ function getCallExpressionName(node) {
   for (const child of node.children) {
     if (child.type === 'variable_declarator') {
       const value = child.childForFieldName('value');
-      if (value && value.type === 'call_expression') {
+      // FIX: Arrays and objects are never hook calls — bail immediately to prevent
+      // false-positives on data structures that merely *contain* hook names as strings.
+      if (!value || value.type === 'array' || value.type === 'array_expression' || value.type === 'object') return null;
+      if (value.type === 'call_expression') {
         return value.childForFieldName('function')?.text || null;
       }
     }
@@ -190,6 +193,15 @@ function generateSkeleton(node, depth, ctx) {
 
   // 1. Skip imports (handled by squashImports)
   if (node.type === 'import_statement') return '';
+
+  // 1b. FIX: Skip array and object literals entirely.
+  // Arrays/objects are data, never structural definitions. Without this guard,
+  // the walker recurses into array contents and triggers false-positive framework
+  // pattern matches on child nodes (e.g. FRAMEWORK_PATTERNS itself being flagged
+  // as a React useState declaration because its contents mention 'useState').
+  if (node.type === 'array' || node.type === 'array_expression' || node.type === 'object') {
+    return '';
+  }
 
   // 2. Accumulate decorators
   if (node.type === 'decorator') {
