@@ -25,23 +25,62 @@ const parser = new Parser();
 
 // * --- Skeleton Logic ---
 // ? Recursively walks the code tree to find only Class and Function signatures.
-function getSkeleton(node) {
+function getSkeleton(node, depth = 0) {
   let skeleton = "";
+  const indent = "  ".repeat(depth);
+
+  // 1. Capture JSDoc Comments (Heuristic: starts with '/**')
+  if (node.type === 'comment' && node.text.startsWith('/**')) {
+    const summary = node.text.split('\n')[0].replace('/**', '').trim() + ' ... */';
+    skeleton += `${indent}[Lines ${node.startPosition.row + 1}-${node.endPosition.row + 1}] /** ${summary}\n`;
+    return skeleton;
+  }
+
+  // 2. Capture Imports
+  if (node.type === 'import_statement') {
+    const cleanImport = node.text.replace(/\s+/g, ' '); 
+    skeleton += `${indent}[Lines ${node.startPosition.row + 1}-${node.endPosition.row + 1}] ${cleanImport}\n`;
+    return skeleton; 
+  }
+
+  // 3. Capture Exports
+  if (node.type === 'export_statement') {
+    const isDefault = node.text.includes('export default') ? 'default ' : '';
+    skeleton += `${indent}[Lines ${node.startPosition.row + 1}-${node.endPosition.row + 1}] export ${isDefault}\n`;
+    node.children.forEach(child => skeleton += getSkeleton(child, depth + 1));
+    return skeleton;
+  }
+
+  // 4. Capture TypeScript Interfaces & Types
+  if (node.type === 'interface_declaration' || node.type === 'type_alias_declaration') {
+    const name = node.childForFieldName('name')?.text || "Unknown";
+    const keyword = node.type === 'interface_declaration' ? 'interface' : 'type';
+    skeleton += `${indent}[Lines ${node.startPosition.row + 1}-${node.endPosition.row + 1}] ${keyword} ${name}\n`;
+    return skeleton; 
+  }
+
+  // 5. Capture Classes
   if (node.type === 'class_declaration') {
     const name = node.childForFieldName('name')?.text || "Unknown";
-    skeleton += `[Lines ${node.startPosition.row + 1}-${node.endPosition.row + 1}] class ${name} {\n`;
-    node.children.forEach(child => skeleton += getSkeleton(child));
-    skeleton += `}\n`;
+    skeleton += `${indent}[Lines ${node.startPosition.row + 1}-${node.endPosition.row + 1}] class ${name} {\n`;
+    node.children.forEach(child => skeleton += getSkeleton(child, depth + 1));
+    skeleton += `${indent}}\n`;
+    return skeleton;
   } 
-  else if (node.type === 'method_definition' || node.type === 'function_declaration') {
+  
+  // 6. Capture Methods and Functions
+  if (node.type === 'method_definition' || node.type === 'function_declaration') {
     const name = node.childForFieldName('name')?.text || "anonymous";
     const params = node.childForFieldName('parameters')?.text || "()";
     const isAsync = node.text.startsWith('async') ? 'async ' : '';
-    skeleton += `  [Lines ${node.startPosition.row + 1}-${node.endPosition.row + 1}] ${isAsync}${name}${params}\n`;
+    skeleton += `${indent}[Lines ${node.startPosition.row + 1}-${node.endPosition.row + 1}] ${isAsync}${name}${params}\n`;
+    return skeleton; 
   }
-  else {
-    node.children.forEach(child => { skeleton += getSkeleton(child); });
-  }
+  
+  node.children.forEach(child => { 
+    skeleton += getSkeleton(child, depth); 
+  });
+  
   return skeleton;
 }
 
