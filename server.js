@@ -7,6 +7,25 @@ const TypeScript = require('tree-sitter-typescript').typescript;
 const fs = require('fs');
 const path = require('path');
 
+// --- 5-Line Rate Limiter (The Circuit Breaker) ---
+let lastCallTime = 0;
+const MIN_INTERVAL = 2000; // 2 seconds minimum between calls
+
+function checkRateLimit() {
+  const now = Date.now();
+  if (now - lastCallTime < MIN_INTERVAL) {
+    throw new Error("RATE_LIMIT_EXCEEDED: You are calling tools too fast. Slow down and reason between steps.");
+  }
+  lastCallTime = now;
+}
+
+// --- Integration into your Tool Handler ---
+// Inside your server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  
+  checkRateLimit(); // <-- Call this at the very start of every tool request
+  
+  // ... rest of your logic
+
 const parser = new Parser();
 
 function getSkeleton(node) {

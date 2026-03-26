@@ -1,0 +1,26 @@
+const Parser = require('tree-sitter');
+const JavaScript = require('tree-sitter-javascript');
+
+// 1. Initialize the Parser
+const parser = new Parser();
+parser.setLanguage(JavaScript);
+
+// 2. Create some dummy code to test the engine
+const sourceCode = `
+  class Database {
+    constructor(url) {
+      this.url = url;
+    }
+    async connect() {
+      console.log("Connecting to " + this.url);
+      return true;
+    }
+  }
+`;
+
+// 3. Parse the code into an Abstract Syntax Tree (AST)
+const tree = parser.parse(sourceCode);
+
+// 4. Print the raw mathematical structure
+console.log("Engine is alive. Here is the raw AST:");
+console.log(tree.rootNode.toString());
