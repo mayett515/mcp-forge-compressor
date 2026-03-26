@@ -349,7 +349,11 @@ function generateSkeleton(node, depth, ctx) {
       if (child.type === 'variable_declarator') {
         const value = child.childForFieldName('value');
         if (value && (value.type === 'array' || value.type === 'array_expression' || value.type === 'object')) {
-          return '';
+          const name = child.childForFieldName('name')?.text || 'unknown';
+          const keyword = node.children[0]?.text || 'const';
+          const prefix = ctx.exportPrefix || '';
+          output += `${indent}${ref} ${prefix}${keyword} ${name}\n`;
+          return output;;
         }
       }
     }
