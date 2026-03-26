@@ -16,6 +16,51 @@ const parser = new Parser();
 let lastCallTime = 0;
 const MIN_INTERVAL = 2000;
 
+// * --- Noise Filter: Directories that cause Token Bloat ---
+const IGNORE_DIRS = ['node_modules', '.git', 'dist', 'build', '.next', '.idea', '__pycache__', 'coverage', '.cache', '.turbo'];
+
+// * --- Project Tree Generator (Workspace Radar) ---
+// ? Recursively builds a token-friendly text map of the project directory.
+// ? Draws visual tree lines (├── / └──) and caps depth to prevent runaway scanning.
+function generateProjectTree(dir, prefix = '', depth = 0, maxDepth = 4) {
+  if (depth > maxDepth) return prefix + '...\n';
+
+  let items;
+  try {
+    items = fs.readdirSync(dir);
+  } catch (err) {
+    return prefix + '[Access Denied]\n';
+  }
+
+  // Sort: folders first, then files. Skip ignored and hidden dirs.
+  const dirs = [];
+  const files = [];
+  for (const item of items) {
+    if (IGNORE_DIRS.includes(item) || item.startsWith('.')) continue;
+    const fullPath = path.join(dir, item);
+    try {
+      const stat = fs.statSync(fullPath);
+      if (stat.isDirectory()) dirs.push(item);
+      else files.push(item);
+    } catch (e) { /* broken symlink */ }
+  }
+
+  let treeStr = '';
+
+  dirs.forEach((d, i) => {
+    const isLast = (i === dirs.length - 1) && (files.length === 0);
+    treeStr += `${prefix}${isLast ? '└── ' : '├── '}${d}/\n`;
+    treeStr += generateProjectTree(path.join(dir, d), prefix + (isLast ? '    ' : '│   '), depth + 1, maxDepth);
+  });
+
+  files.forEach((f, i) => {
+    const isLast = i === files.length - 1;
+    treeStr += `${prefix}${isLast ? '└── ' : '├── '}${f}\n`;
+  });
+
+  return treeStr;
+}
+
 // * --- Import Path Resolver ---
 // ? Resolves relative import strings (e.g., './auth') to absolute file paths.
 // ? Handles TypeScript and JavaScript extension dropping.
@@ -84,6 +129,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           currentFilePath: { type: "string", description: "Absolute path of the file containing the import" }
         },
         required: ["symbolName", "currentFilePath"],
+      },
+    },
+    {
+      name: "get_project_tree",
+      description: "WORKSPACE RADAR: Generates a token-optimized visual map of the project's directory structure. Use this FIRST when dropped into an unknown codebase to identify entry points, source folders, and config files. Automatically filters out node_modules, .git, dist, build, and other noisy directories. Max depth: 4 levels.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          absolutePath: { type: "string", description: "The absolute path of the root directory to map" }
+        },
+        required: ["absolutePath"],
       },
     }
   ],
@@ -178,6 +234,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       return {
         isError: true,
         content: [{ type: "text", text: `Error tracing symbol: ${error.message}` }]
+      };
+    }
+  }
+
+  // * --- Tool: get_project_tree (Workspace Radar) ---
+  if (name === "get_project_tree") {
+    try {
+      const { absolutePath } = args;
+
+      if (!fs.existsSync(absolutePath)) {
+        return { content: [{ type: "text", text: `Error: Directory not found at ${absolutePath}` }] };
+      }
+
+      const stat = fs.statSync(absolutePath);
+      if (!stat.isDirectory()) {
+        return { content: [{ type: "text", text: `Error: ${absolutePath} is a file, not a directory. Pass a folder path.` }] };
+      }
+
+      const treeVisual = generateProjectTree(absolutePath);
+
+      return {
+        content: [{
+          type: "text",
+          text: `PROJECT WORKSPACE MAP:\n\n${absolutePath}\n${treeVisual}\nNext: choose a relevant file and call get_file_skeleton to map its internal structure.`
+        }]
+      };
+    } catch (error) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error generating project tree: ${error.message}` }]
       };
     }
   }
