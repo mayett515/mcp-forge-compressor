@@ -338,7 +338,43 @@ function generateSkeleton(node, depth, ctx) {
     return output;
   }
 
-  // 13. Arrow function / function expression in variable declaration
+ 
+// 13. Arrow function / function expression in variable declaration
+  if (node.type === 'lexical_declaration' || node.type === 'variable_declaration') {
+
+    // FIX: If the value is an array or object literal, skip entirely.
+    // Data structures like FRAMEWORK_PATTERNS should not be walked —
+    // their contents are config/data, not structural code definitions.
+    for (const child of node.children) {
+      if (child.type === 'variable_declarator') {
+        const value = child.childForFieldName('value');
+        if (value && (value.type === 'array' || value.type === 'array_expression' || value.type === 'object')) {
+          return '';
+        }
+      }
+    }
+
+    for (const child of node.children) {
+      if (child.type === 'variable_declarator') {
+        const value = child.childForFieldName('value');
+        if (value && (value.type === 'arrow_function' || value.type === 'function_expression' || value.type === 'function')) {
+          const name = child.childForFieldName('name')?.text || 'anonymous';
+          const params = value.childForFieldName('parameters')?.text || '()';
+          const asyncLabel = isAsync(value) ? 'async ' : '';
+          const returnType = extractReturnType(value);
+          const keyword = node.children[0]?.text || 'const';
+          const prefix = ctx.exportPrefix || '';
+          if (value.type === 'arrow_function') {
+            output += `${indent}${ref} ${prefix}${keyword} ${name} = ${asyncLabel}${params}${returnType} =>\n`;
+          } else {
+            output += `${indent}${ref} ${prefix}${keyword} ${name} = ${asyncLabel}function${params}${returnType}\n`;
+          }
+          return output;
+        }
+      }
+    }
+    // Not an arrow/function expression — fall through to default recursion
+  }
   if (node.type === 'lexical_declaration' || node.type === 'variable_declaration') {
     for (const child of node.children) {
       if (child.type === 'variable_declarator') {
