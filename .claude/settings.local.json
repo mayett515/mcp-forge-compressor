@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const s = require\\(''./skeleton''\\); console.log\\(s.generateSemanticMap\\(''./test_typescript.ts''\\)\\)\")",
+      "Bash(node -e \":*)"
+    ]
+  }
+}
