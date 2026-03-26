@@ -333,7 +333,13 @@ function generateSkeleton(node, depth, ctx) {
     const prefix = ctx.exportPrefix || "";
     const abstractLabel =
       node.type === "abstract_class_declaration" ? "abstract " : "";
-    output += `${indent}${ref} ${prefix}${abstractLabel}class ${name} {\n`;
+    // FIX: In TypeScript, decorators are children of the class node itself,
+    // not siblings. Extract and emit them before the class line.
+    const decorators = node.children.filter((c) => c.type === "decorator");
+    for (const dec of decorators) {
+      output += `${indent}${ref} ${dec.text}\n`;
+    }
+    output += `${indent}${ref} ${prefix}${abstractLabel}class ${name} {\n`; /*  */
 
     const body = node.children.find((c) => c.type === "class_body");
     if (body) {
