@@ -33,8 +33,7 @@ const parser = new Parser();
 
 // * --- Rate Limiter (Circuit Breaker) ---
 // ? Prevents the AI from spamming the server and overwhelming system resources.
-let lastCallTime = 0;
-const MIN_INTERVAL = 2000;
+//deleted it fuck those limiter functions it was only because of a bug
 
 // * --- Noise Filter: Directories that cause Token Bloat ---
 const IGNORE_DIRS = [
@@ -174,14 +173,7 @@ async function resolveModulePath(baseFilePath, importPath) {
 // RATE LIMITER
 // ==========================================
 
-function checkRateLimit() {
-  const now = Date.now();
-  if (now - lastCallTime < MIN_INTERVAL) {
-    // ! Explicitly throw an error to force the AI to wait.
-    throw new Error("RATE_LIMIT_EXCEEDED: You are calling tools too fast. Slow down.");
-  }
-  lastCallTime = now;
-}
+///deleted the shitty ass rate limiter that was only here because of a fucking bug
 
 // ==========================================
 // MCP SERVER INITIALIZATION
@@ -257,11 +249,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   // ? Check rate limit first for all requests
-  try {
-    checkRateLimit();
-  } catch (error) {
-    return { isError: true, content: [{ type: "text", text: error.message }] };
-  }
+  //deleted the fucking check rate limit 
 
   // * --- Tool: get_file_skeleton ---
   if (name === "get_file_skeleton") {
