@@ -1,0 +1,90 @@
+# ==========================================
+# js/express.logic.yaml
+# Express specific patterns for JavaScript
+# These only run when express is detected in imports
+# DO NOT EDIT patterns.compiled.yaml directly
+# Run: node compile-patterns.js to recompile
+# ==========================================
+
+- id: express-get
+  lang: js
+  framework: express
+  label: "Route: {object}.get({path})"
+  target:
+    kind: expression_statement
+  match: |
+    ANY child IN node.children WHERE (
+      child.method_call == app.get OR
+      child.method_call == router.get
+    )
+
+- id: express-post
+  lang: js
+  framework: express
+  label: "Route: {object}.post({path})"
+  target:
+    kind: expression_statement
+  match: |
+    ANY child IN node.children WHERE (
+      child.method_call == app.post OR
+      child.method_call == router.post
+    )
+
+- id: express-put
+  lang: js
+  framework: express
+  label: "Route: {object}.put({path})"
+  target:
+    kind: expression_statement
+  match: |
+    ANY child IN node.children WHERE (
+      child.method_call == app.put OR
+      child.method_call == router.put
+    )
+
+- id: express-patch
+  lang: js
+  framework: express
+  label: "Route: {object}.patch({path})"
+  target:
+    kind: expression_statement
+  match: |
+    ANY child IN node.children WHERE (
+      child.method_call == app.patch OR
+      child.method_call == router.patch
+    )
+
+- id: express-delete
+  lang: js
+  framework: express
+  label: "Route: {object}.delete({path})"
+  target:
+    kind: expression_statement
+  match: |
+    ANY child IN node.children WHERE (
+      child.method_call == app.delete OR
+      child.method_call == router.delete
+    )
+
+- id: express-use
+  lang: js
+  framework: express
+  label: "Middleware: {object}.use({path})"
+  target:
+    kind: expression_statement
+  match: |
+    ANY child IN node.children WHERE (
+      child.method_call == app.use OR
+      child.method_call == router.use
+    )
+
+- id: express-router
+  lang: js
+  framework: express
+  label: "Router: {name} = express.Router()"
+  target:
+    kind: lexical_declaration
+  match: |
+    ANY declarator IN node.children WHERE (
+      declarator.method_call == express.Router
+    )

@@ -1,0 +1,112 @@
+# ==========================================
+# js/vue.logic.yaml
+# Vue specific patterns for JavaScript
+# These only run when vue is detected in imports
+# DO NOT EDIT patterns.compiled.yaml directly
+# Run: node compile-patterns.js to recompile
+# ==========================================
+
+- id: vue-ref
+  lang: js
+  framework: vue
+  label: "Ref: {declaration}"
+  target:
+    kind: lexical_declaration
+  match: |
+    ANY declarator IN node.children WHERE (
+      declarator.call == ref
+    )
+
+- id: vue-reactive
+  lang: js
+  framework: vue
+  label: "Reactive: {declaration}"
+  target:
+    kind: lexical_declaration
+  match: |
+    ANY declarator IN node.children WHERE (
+      declarator.call == reactive
+    )
+
+- id: vue-computed
+  lang: js
+  framework: vue
+  label: "Computed: {declaration}"
+  target:
+    kind: lexical_declaration
+  match: |
+    ANY declarator IN node.children WHERE (
+      declarator.call == computed
+    )
+
+- id: vue-watch
+  lang: js
+  framework: vue
+  label: "Watch: {declaration}"
+  target:
+    kind: expression_statement
+  match: |
+    ANY child IN node.children WHERE (
+      child.call == watch
+    )
+
+- id: vue-watch-effect
+  lang: js
+  framework: vue
+  label: "WatchEffect: {declaration}"
+  target:
+    kind: expression_statement
+  match: |
+    ANY child IN node.children WHERE (
+      child.call == watchEffect
+    )
+
+- id: vue-define-component
+  lang: js
+  framework: vue
+  label: "Component: {name}"
+  target:
+    kind: lexical_declaration
+  match: |
+    ANY declarator IN node.children WHERE (
+      declarator.call == defineComponent
+    )
+
+- id: vue-define-props
+  lang: js
+  framework: vue
+  label: "Props: {declaration}"
+  target:
+    kind: lexical_declaration
+  match: |
+    ANY declarator IN node.children WHERE (
+      declarator.call == defineProps
+    )
+
+- id: vue-define-emits
+  lang: js
+  framework: vue
+  label: "Emits: {declaration}"
+  target:
+    kind: lexical_declaration
+  match: |
+    ANY declarator IN node.children WHERE (
+      declarator.call == defineEmits
+    )
+
+- id: vue-lifecycle
+  lang: js
+  framework: vue
+  label: "Lifecycle: {call}(() => {...})"
+  target:
+    kind: expression_statement
+  match: |
+    ANY child IN node.children WHERE (
+      child.call == onMounted OR
+      child.call == onUnmounted OR
+      child.call == onCreated OR
+      child.call == onBeforeMount OR
+      child.call == onBeforeUnmount OR
+      child.call == onUpdated OR
+      child.call == onBeforeUpdate
+    )

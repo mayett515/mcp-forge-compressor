@@ -1,0 +1,97 @@
+# ==========================================
+# js/react.logic.yaml
+# React specific patterns for JavaScript
+# These only run when react is detected in imports
+# DO NOT EDIT patterns.compiled.yaml directly
+# Run: node compile-patterns.js to recompile
+# ==========================================
+
+# --- Hooks ---
+
+- id: react-state
+  lang: js
+  framework: react
+  # description: "Matches React useState and useReducer hook declarations"
+  label: "State: {declaration}"
+  target:
+    kind: lexical_declaration
+  match: |
+    ANY declarator IN node.children WHERE (
+      declarator.call == useState OR declarator.call == useReducer
+    )
+
+- id: react-effect
+  lang: js
+  framework: react
+  # description: "Matches React useEffect and useLayoutEffect hook calls"
+  label: "Effect: {call}(() => {...}, [{deps}])"
+  target:
+    kind: expression_statement
+  match: |
+    ANY child IN node.children WHERE (
+      child.call == useEffect OR child.call == useLayoutEffect
+    )
+
+- id: react-context
+  lang: js
+  framework: react
+  # description: "Matches React useContext hook"
+  label: "Context: {declaration}"
+  target:
+    kind: lexical_declaration
+  match: |
+    ANY declarator IN node.children WHERE (
+      declarator.call == useContext
+    )
+
+- id: react-ref
+  lang: js
+  framework: react
+  # description: "Matches React useRef hook"
+  label: "Ref: {declaration}"
+  target:
+    kind: lexical_declaration
+  match: |
+    ANY declarator IN node.children WHERE (
+      declarator.call == useRef
+    )
+
+- id: react-memo
+  lang: js
+  framework: react
+  # description: "Matches React useMemo and useCallback hooks"
+  label: "Memo: {declaration}"
+  target:
+    kind: lexical_declaration
+  match: |
+    ANY declarator IN node.children WHERE (
+      declarator.call == useMemo OR declarator.call == useCallback
+    )
+
+- id: react-custom-hook
+  lang: js
+  framework: react
+  # description: "Matches custom React hooks"
+  label: "Hook: {name}{params}"
+  target:
+    kind: function_declaration
+  match: |
+    node.name starts_with use AND
+    node.name != useEffect AND
+    node.name != useState AND
+    node.name != useReducer AND
+    node.name != useContext AND
+    node.name != useRef AND
+    node.name != useMemo AND
+    node.name != useCallback AND
+    node.name != useLayoutEffect
+
+- id: react-component
+  lang: js
+  framework: react
+  # description: "Matches React functional components"
+  label: "Component: {name}{params}"
+  target:
+    kind: function_declaration
+  match: |
+    node.name starts_with_capital
