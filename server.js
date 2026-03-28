@@ -1,7 +1,27 @@
+// ==========================================
+// server.js
+// MCP Server entry point for mcp-forge-compressor.
+//
+// * --- USAGE ---
+//   node server.js [allowed-dir-1] [allowed-dir-2] ...
+//
+//   If no directories are passed, ALL paths are allowed (development mode).
+//   In production, always pass allowed directories to restrict file access.
+//
+// * --- EXAMPLE ---
+//   node server.js /home/user/my-project /home/user/other-project
+//
+// * --- TOOLS EXPOSED ---
+//   get_file_skeleton       — compressed AST skeleton of a file
+//   read_function_range     — extract exact line range from a file
+//   find_symbol_definition  — trace imported symbols across files
+//   get_project_tree        — visual directory map
+// ==========================================
+
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
 const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
 const { CallToolRequestSchema, ListToolsRequestSchema } = require("@modelcontextprotocol/sdk/types.js");
-const fs = require('fs');
+const fs = require('fs/promises');
 const path = require('path');
 const Parser = require('tree-sitter');
 const JavaScript = require('tree-sitter-javascript');
@@ -11,23 +31,83 @@ const { generateSemanticMap } = require('./skeleton');
 // * --- Parser instance for import resolution ---
 const parser = new Parser();
 
-// * --- 5-Line Rate Limiter (The Circuit Breaker) ---
+// * --- Rate Limiter (Circuit Breaker) ---
 // ? Prevents the AI from spamming the server and overwhelming system resources.
 let lastCallTime = 0;
 const MIN_INTERVAL = 2000;
 
 // * --- Noise Filter: Directories that cause Token Bloat ---
-const IGNORE_DIRS = ['node_modules', '.git', 'dist', 'build', '.next', '.idea', '__pycache__', 'coverage', '.cache', '.turbo'];
+const IGNORE_DIRS = [
+  'node_modules', '.git', 'dist', 'build', '.next',
+  '.idea', '__pycache__', 'coverage', '.cache', '.turbo'
+];
 
-// * --- Project Tree Generator (Workspace Radar) ---
-// ? Recursively builds a token-friendly text map of the project directory.
-// ? Draws visual tree lines (├── / └──) and caps depth to prevent runaway scanning.
-function generateProjectTree(dir, prefix = '', depth = 0, maxDepth = 4) {
+// ==========================================
+// SECURITY: PATH TRAVERSAL PROTECTION
+// ==========================================
+
+// * Parse allowed directories from command line arguments.
+// ? e.g. node server.js /home/user/project1 /home/user/project2
+// ? If none provided, runs in open mode (development only).
+const allowedDirectories = process.argv.slice(2).map(d => path.resolve(d));
+
+if (allowedDirectories.length > 0) {
+  console.log('[server] [OK] Allowed directories:');
+  allowedDirectories.forEach(d => console.log(`  - ${d}`));
+} else {
+  console.log('[server] [WARN] No allowed directories specified — running in open mode.');
+  console.log('[server] [WARN] Pass allowed directories as arguments for production use:');
+  console.log('[server] [WARN]   node server.js /path/to/project');
+}
+
+/**
+ * * Checks if a requested path is within any of the allowed directories.
+ *
+ * ! FIX: Uses path.relative() instead of startsWith() to prevent path traversal.
+ * ! startsWith() is exploitable: if allowed dir is /project, then
+ * ! /project-hacked/passwords.txt passes the check. path.relative() does not.
+ *
+ * ! FIX: relative === '' explicitly allowed — means the requested path IS
+ * ! the allowed directory root itself. Without this, path.relative('/p', '/p')
+ * ! returns "" which is falsy, causing root directory access to be wrongly denied.
+ *
+ * @param {string} requestedPath - The path being requested
+ * @returns {boolean} True if the path is within an allowed directory
+ */
+function isPathAllowed(requestedPath) {
+  // If no restrictions configured, allow all (development mode)
+  if (allowedDirectories.length === 0) return true;
+
+  const absoluteRequested = path.resolve(requestedPath);
+
+  return allowedDirectories.some(allowedDir => {
+    const relative = path.relative(allowedDir, absoluteRequested);
+    // relative === '' means path IS the allowed dir root (must be explicitly allowed)
+    // !startsWith('..') means path is inside the allowed dir (not escaping up)
+    // !isAbsolute means path is not on a completely different root
+    return (relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative)));
+  });
+}
+
+// ==========================================
+// PROJECT TREE GENERATOR (Workspace Radar)
+// ==========================================
+
+/**
+ * * Recursively builds a token-friendly text map of the project directory.
+ * ? Draws visual tree lines (├── / └──) and caps depth to prevent runaway scanning.
+ * ! Now fully async — uses fs/promises to avoid blocking the event loop.
+ */
+
+// TODO V2.1: Replace sequential stat() calls with Promise.all() for
+// concurrent file stat checking — significant performance improvement
+// on directories with 1000+ files.
+async function generateProjectTree(dir, prefix = '', depth = 0, maxDepth = 4) {
   if (depth > maxDepth) return prefix + '...\n';
 
   let items;
   try {
-    items = fs.readdirSync(dir);
+    items = await fs.readdir(dir);
   } catch (err) {
     return prefix + '[Access Denied]\n';
   }
@@ -39,19 +119,26 @@ function generateProjectTree(dir, prefix = '', depth = 0, maxDepth = 4) {
     if (IGNORE_DIRS.includes(item) || item.startsWith('.')) continue;
     const fullPath = path.join(dir, item);
     try {
-      const stat = fs.statSync(fullPath);
+      const stat = await fs.stat(fullPath);
       if (stat.isDirectory()) dirs.push(item);
       else files.push(item);
-    } catch (e) { /* broken symlink */ }
+    } catch (e) { /* broken symlink — skip silently */ }
   }
 
   let treeStr = '';
 
-  dirs.forEach((d, i) => {
+  // ! Must use for loop (not forEach) to properly await recursive async calls
+  for (let i = 0; i < dirs.length; i++) {
+    const d = dirs[i];
     const isLast = (i === dirs.length - 1) && (files.length === 0);
     treeStr += `${prefix}${isLast ? '└── ' : '├── '}${d}/\n`;
-    treeStr += generateProjectTree(path.join(dir, d), prefix + (isLast ? '    ' : '│   '), depth + 1, maxDepth);
-  });
+    treeStr += await generateProjectTree(
+      path.join(dir, d),
+      prefix + (isLast ? '    ' : '│   '),
+      depth + 1,
+      maxDepth
+    );
+  }
 
   files.forEach((f, i) => {
     const isLast = i === files.length - 1;
@@ -61,20 +148,31 @@ function generateProjectTree(dir, prefix = '', depth = 0, maxDepth = 4) {
   return treeStr;
 }
 
-// * --- Import Path Resolver ---
-// ? Resolves relative import strings (e.g., './auth') to absolute file paths.
-// ? Handles TypeScript and JavaScript extension dropping.
-function resolveModulePath(baseFilePath, importPath) {
+// ==========================================
+// IMPORT PATH RESOLVER
+// ==========================================
+
+/**
+ * * Resolves relative import strings (e.g., './auth') to absolute file paths.
+ * ? Handles TypeScript and JavaScript extension dropping.
+ * ! Now async — uses fs.access() instead of fs.existsSync().
+ */
+async function resolveModulePath(baseFilePath, importPath) {
   const baseDir = path.dirname(baseFilePath);
   const targetPath = path.resolve(baseDir, importPath);
   const extensions = ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.js'];
   for (const ext of extensions) {
-    if (fs.existsSync(targetPath + ext)) {
+    try {
+      await fs.access(targetPath + ext);
       return targetPath + ext;
-    }
+    } catch (e) { /* not found, try next extension */ }
   }
   return null;
 }
+
+// ==========================================
+// RATE LIMITER
+// ==========================================
 
 function checkRateLimit() {
   const now = Date.now();
@@ -85,7 +183,10 @@ function checkRateLimit() {
   lastCallTime = now;
 }
 
-// * --- MCP Server Initialization ---
+// ==========================================
+// MCP SERVER INITIALIZATION
+// ==========================================
+
 const server = new Server({
   name: "mcp-forge-compressor",
   version: "2.0.0",
@@ -93,8 +194,11 @@ const server = new Server({
   capabilities: { tools: {} },
 });
 
-// * --- Tool Definitions ---
-// ? This tells the AI what tools are available and what inputs they need.
+// ==========================================
+// TOOL DEFINITIONS
+// ? Tells the AI what tools are available and what inputs they need.
+// ==========================================
+
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
@@ -145,11 +249,14 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   ],
 }));
 
-// * --- Core Tool Execution Logic ---
+// ==========================================
+// TOOL EXECUTION LOGIC
+// ==========================================
+
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
-  // ? 1. Check Rate Limit first for all requests
+  // ? Check rate limit first for all requests
   try {
     checkRateLimit();
   } catch (error) {
@@ -159,6 +266,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   // * --- Tool: get_file_skeleton ---
   if (name === "get_file_skeleton") {
     try {
+      // SECURITY: Validate path is within allowed directories
+      if (!isPathAllowed(args.filepath)) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `[ERROR] Access denied: ${args.filepath} is outside the allowed directories.` }]
+        };
+      }
+
+      // ? generateSemanticMap is sync (tree-sitter is sync by nature)
       const result = generateSemanticMap(args.filepath);
       return { content: [{ type: "text", text: result }] };
     } catch (error) {
@@ -174,17 +290,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     try {
       const { symbolName, currentFilePath } = args;
 
-      if (!fs.existsSync(currentFilePath)) {
+      // SECURITY: Validate path is within allowed directories
+      if (!isPathAllowed(currentFilePath)) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `[ERROR] Access denied: ${currentFilePath} is outside the allowed directories.` }]
+        };
+      }
+
+      try {
+        await fs.access(currentFilePath);
+      } catch (e) {
         return { content: [{ type: "text", text: `Error: File not found at ${currentFilePath}` }] };
       }
 
-      // 1. Parse the current file's AST
-      const sourceCode = fs.readFileSync(currentFilePath, 'utf8');
+      // Parse the current file's AST
+      const sourceCode = await fs.readFile(currentFilePath, 'utf8');
       const ext = path.extname(currentFilePath);
       parser.setLanguage(['.ts', '.tsx'].includes(ext) ? TypeScript : JavaScript);
       const tree = parser.parse(sourceCode);
 
-      // 2. Scan top-level imports — supports both ES modules and CommonJS require()
+      // Scan top-level imports — supports both ES modules and CommonJS require()
       let importSource = null;
       for (const child of tree.rootNode.children) {
         // ES Module: import { Foo } from './path'
@@ -218,15 +344,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      // 3. Resolve the physical file path
-      const resolved = resolveModulePath(currentFilePath, importSource);
+      // Resolve the physical file path
+      const resolved = await resolveModulePath(currentFilePath, importSource);
       if (!resolved) {
         return {
           content: [{ type: "text", text: `Import '${importSource}' found but could not resolve to a physical file. It may be a node_modules package.` }]
         };
       }
 
-      // 4. Return the bridge — the AI calls get_file_skeleton next
+      // Return the bridge — the AI calls get_file_skeleton next
       return {
         content: [{ type: "text", text: `${resolved}\n\nNext: call get_file_skeleton on this path to map its structure.` }]
       };
@@ -243,16 +369,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     try {
       const { absolutePath } = args;
 
-      if (!fs.existsSync(absolutePath)) {
+      // SECURITY: Validate path is within allowed directories
+      if (!isPathAllowed(absolutePath)) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `[ERROR] Access denied: ${absolutePath} is outside the allowed directories.` }]
+        };
+      }
+
+      let stat;
+      try {
+        stat = await fs.stat(absolutePath);
+      } catch (e) {
         return { content: [{ type: "text", text: `Error: Directory not found at ${absolutePath}` }] };
       }
 
-      const stat = fs.statSync(absolutePath);
       if (!stat.isDirectory()) {
         return { content: [{ type: "text", text: `Error: ${absolutePath} is a file, not a directory. Pass a folder path.` }] };
       }
 
-      const treeVisual = generateProjectTree(absolutePath);
+      const treeVisual = await generateProjectTree(absolutePath);
 
       return {
         content: [{
@@ -271,7 +407,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   // * --- Tool: read_function_range ---
   if (name === "read_function_range") {
     try {
-      const lines = fs.readFileSync(args.filepath, 'utf8').split('\n');
+      // SECURITY: Validate path is within allowed directories
+      if (!isPathAllowed(args.filepath)) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `[ERROR] Access denied: ${args.filepath} is outside the allowed directories.` }]
+        };
+      }
+
+      const content = await fs.readFile(args.filepath, 'utf8');
+      const lines = content.split('\n');
       const selection = lines.slice(args.startLine - 1, args.endLine).join('\n');
       return { content: [{ type: "text", text: selection }] };
     } catch (error) {
@@ -283,7 +428,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-// * --- Boot Sequence ---
+// ==========================================
+// BOOT SEQUENCE
+// ==========================================
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
