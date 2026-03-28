@@ -1,0 +1,53 @@
+# ==========================================
+# js/core.data.yaml
+# Core JavaScript structural patterns
+# These apply to ALL JS files regardless of framework
+# DO NOT EDIT patterns.compiled.yaml directly
+# Run: node compile-patterns.js to recompile
+# ==========================================
+
+# --- Functions ---
+
+- id: js-function
+  lang: js
+  label: "function {name}{params}"
+  target:
+    kind: function_declaration
+
+- id: js-async-function
+  lang: js
+  label: "async function {name}{params}"
+  target:
+    kind: function_declaration
+    modifiers: [async]
+
+- id: js-arrow-function
+  lang: js
+  label: "const {name} = {params} =>"
+  target:
+    kind: arrow_function
+
+- id: js-async-arrow-function
+  lang: js
+  label: "const {name} = async {params} =>"
+  target:
+    kind: arrow_function
+    modifiers: [async]
+
+# --- Classes ---
+
+- id: js-class
+  lang: js
+  label: "class {name}"
+  target:
+    kind: class_declaration
+
+# --- Modules ---
+
+- id: js-module-exports
+  lang: js
+  label: "module.exports = {exports}"
+  target:
+    kind: expression_statement
+    object: module
+    property: exports

@@ -1,0 +1,128 @@
+# ==========================================
+# ts/nestjs.logic.yaml
+# NestJS specific patterns for TypeScript
+# These only run when nestjs is detected in imports
+# DO NOT EDIT patterns.compiled.yaml directly
+# Run: node compile-patterns.js to recompile
+# ==========================================
+
+- id: nestjs-controller
+  lang: ts
+  framework: nestjs
+  label: "Controller: {name}"
+  target:
+    kind: class_declaration
+  match: |
+    ANY decorator IN node.decorators WHERE (
+      decorator.name == Controller
+    )
+
+- id: nestjs-injectable
+  lang: ts
+  framework: nestjs
+  label: "Injectable: {name}"
+  target:
+    kind: class_declaration
+  match: |
+    ANY decorator IN node.decorators WHERE (
+      decorator.name == Injectable
+    )
+
+- id: nestjs-module
+  lang: ts
+  framework: nestjs
+  label: "Module: {name}"
+  target:
+    kind: class_declaration
+  match: |
+    ANY decorator IN node.decorators WHERE (
+      decorator.name == Module
+    )
+
+- id: nestjs-get
+  lang: ts
+  framework: nestjs
+  label: "GET: {name}{params}"
+  target:
+    kind: method_definition
+  match: |
+    ANY decorator IN node.decorators WHERE (
+      decorator.name == Get
+    )
+
+- id: nestjs-post
+  lang: ts
+  framework: nestjs
+  label: "POST: {name}{params}"
+  target:
+    kind: method_definition
+  match: |
+    ANY decorator IN node.decorators WHERE (
+      decorator.name == Post
+    )
+
+- id: nestjs-put
+  lang: ts
+  framework: nestjs
+  label: "PUT: {name}{params}"
+  target:
+    kind: method_definition
+  match: |
+    ANY decorator IN node.decorators WHERE (
+      decorator.name == Put
+    )
+
+- id: nestjs-patch
+  lang: ts
+  framework: nestjs
+  label: "PATCH: {name}{params}"
+  target:
+    kind: method_definition
+  match: |
+    ANY decorator IN node.decorators WHERE (
+      decorator.name == Patch
+    )
+
+- id: nestjs-delete
+  lang: ts
+  framework: nestjs
+  label: "DELETE: {name}{params}"
+  target:
+    kind: method_definition
+  match: |
+    ANY decorator IN node.decorators WHERE (
+      decorator.name == Delete
+    )
+
+- id: nestjs-guard
+  lang: ts
+  framework: nestjs
+  label: "Guard: {name}"
+  target:
+    kind: method_definition
+  match: |
+    ANY decorator IN node.decorators WHERE (
+      decorator.name == UseGuards
+    )
+
+- id: nestjs-interceptor
+  lang: ts
+  framework: nestjs
+  label: "Interceptor: {name}"
+  target:
+    kind: method_definition
+  match: |
+    ANY decorator IN node.decorators WHERE (
+      decorator.name == UseInterceptors
+    )
+
+- id: nestjs-pipe
+  lang: ts
+  framework: nestjs
+  label: "Pipe: {name}"
+  target:
+    kind: method_definition
+  match: |
+    ANY decorator IN node.decorators WHERE (
+      decorator.name == UsePipes
+    )
