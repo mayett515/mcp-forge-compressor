@@ -18,9 +18,9 @@ const RESERVED_NAMES = ['core', 'custom'];
 // * --- Helpers ---
 
 function log(msg) { console.log(msg); }
-function warn(msg) { console.warn(`⚠️  ${msg}`); }
-function success(msg) { console.log(`✅ ${msg}`); }
-function error(msg) { console.error(`❌ ${msg}`); }
+function warn(msg) { console.log(`[WARN]  ${msg}`); }
+function success(msg) { console.log(`[OK]    ${msg}`); }
+function error(msg) { console.log(`[ERROR] ${msg}`); }
 
 // * --- Step 1: Scan all pattern files ---
 function scanPatternFiles() {

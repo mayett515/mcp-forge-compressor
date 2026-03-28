@@ -1,14 +1,14 @@
 # ==========================================
 # patterns.compiled.yaml
 # AUTO-GENERATED — DO NOT EDIT
-# Generated: 2026-03-28T13:23:38.971Z
+# Generated: 2026-03-26T21:27:52.437Z
 # Total patterns: 56
 # Languages: js, ts
 # Run: node compile-patterns.js to regenerate
 # ==========================================
 
 meta:
-  generated_at: "2026-03-28T13:23:38.971Z"
+  generated_at: "2026-03-26T21:27:52.437Z"
   total_patterns: 56
   languages:
     - js

@@ -12,31 +12,33 @@
 //   node patterns.js undo 3       → restore 3 steps back
 //   node patterns.js status       → show what changed since last compile
 // ==========================================
+process.stdout.setEncoding("utf8");
+process.stderr.setEncoding("utf8");
 
-const fs = require('fs');
-const path = require('path');
-const yaml = require('js-yaml');
+const fs = require("fs");
+const path = require("path");
+const yaml = require("js-yaml");
 
 // * --- Config ---
-const PATTERNS_DIR = path.join(__dirname, 'patterns');
-const BACKUPS_DIR = path.join(__dirname, 'patterns.backups');
-const COMPILED_FILE = path.join(__dirname, 'patterns.compiled.yaml');
-const SUPPORTED_LANGS = ['js', 'ts', 'python', 'go'];
+const PATTERNS_DIR = path.join(__dirname, "patterns");
+const BACKUPS_DIR = path.join(__dirname, "patterns.backups");
+const COMPILED_FILE = path.join(__dirname, "patterns.compiled.yaml");
+const SUPPORTED_LANGS = ["js", "ts", "python", "go"];
 const MAX_BACKUPS = 3;
 
 // * --- Logging ---
 const log = (msg) => console.log(msg);
-const warn = (msg) => console.warn(`⚠️  ${msg}`);
-const success = (msg) => console.log(`✅ ${msg}`);
-const error = (msg) => console.error(`❌ ${msg}`);
-const info = (msg) => console.log(`ℹ️  ${msg}`);
+const warn = (msg) => console.log(`[WARN]  ${msg}`);
+const success = (msg) => console.log(`[OK]    ${msg}`);
+const error = (msg) => console.log(`[ERROR] ${msg}`);
+const info = (msg) => console.log(`[INFO]  ${msg}`);
 
 // ==========================================
 // BACKUP SYSTEM
 // ==========================================
 
 function createBackup() {
-  log('\n📦 Creating backup...');
+  log("\n[BACKUP] Creating backup...");
 
   if (!fs.existsSync(BACKUPS_DIR)) {
     fs.mkdirSync(BACKUPS_DIR, { recursive: true });
@@ -61,18 +63,18 @@ function createBackup() {
   }
 
   // Copy current patterns to backup-1
-  const backup1 = path.join(BACKUPS_DIR, 'backup-1');
+  const backup1 = path.join(BACKUPS_DIR, "backup-1");
   copyDir(PATTERNS_DIR, backup1);
 
   // Also backup compiled file if it exists
   if (fs.existsSync(COMPILED_FILE)) {
     fs.copyFileSync(
       COMPILED_FILE,
-      path.join(backup1, 'patterns.compiled.yaml')
+      path.join(backup1, "patterns.compiled.yaml"),
     );
   }
 
-  success('Backup created → patterns.backups/backup-1');
+  success("Backup created → patterns.backups/backup-1");
 }
 
 function restoreBackup(steps) {
@@ -91,7 +93,7 @@ function restoreBackup(steps) {
     process.exit(1);
   }
 
-  log(`\n🔄 Restoring from backup-${steps}...`);
+  log(`\n[RESTORE] Restoring from backup-${steps}...`);
 
   // Clear current patterns dir
   if (fs.existsSync(PATTERNS_DIR)) {
@@ -102,7 +104,7 @@ function restoreBackup(steps) {
   copyDir(backupPath, PATTERNS_DIR);
 
   // Restore compiled file if backed up
-  const backedUpCompiled = path.join(backupPath, 'patterns.compiled.yaml');
+  const backedUpCompiled = path.join(backupPath, "patterns.compiled.yaml");
   if (fs.existsSync(backedUpCompiled)) {
     fs.copyFileSync(backedUpCompiled, COMPILED_FILE);
   }
@@ -133,7 +135,7 @@ function copyDir(src, dest) {
 
 function readYamlPatterns(filePath) {
   if (!fs.existsSync(filePath)) return [];
-  const content = fs.readFileSync(filePath, 'utf8');
+  const content = fs.readFileSync(filePath, "utf8");
   if (!content.trim()) return [];
   try {
     const parsed = yaml.load(content);
@@ -160,19 +162,19 @@ function readJsPatterns(filePath) {
 function writeYamlPatterns(filePath, patterns, header) {
   const content = [
     header,
-    '',
-    yaml.dump(patterns, { lineWidth: 120, quotingType: '"' })
-  ].join('\n');
-  fs.writeFileSync(filePath, content, 'utf8');
+    "",
+    yaml.dump(patterns, { lineWidth: 120, quotingType: '"' }),
+  ].join("\n");
+  fs.writeFileSync(filePath, content, "utf8");
 }
 
 function writeJsPatterns(filePath, patterns, header) {
   const content = [
     header,
-    '',
-    'module.exports = ' + JSON.stringify(patterns, null, 2) + ';'
-  ].join('\n');
-  fs.writeFileSync(filePath, content, 'utf8');
+    "",
+    "module.exports = " + JSON.stringify(patterns, null, 2) + ";",
+  ].join("\n");
+  fs.writeFileSync(filePath, content, "utf8");
 }
 
 // ==========================================
@@ -187,19 +189,23 @@ function scanPatternPairs() {
     if (!fs.existsSync(langDir)) continue;
 
     const entries = fs.readdirSync(langDir);
-    const yamlFiles = entries.filter(e => e.endsWith('.yaml') || e.endsWith('.yml'));
-    const jsFiles = entries.filter(e => e.endsWith('.js') || e.endsWith('.ts'));
+    const yamlFiles = entries.filter(
+      (e) => e.endsWith(".yaml") || e.endsWith(".yml"),
+    );
+    const jsFiles = entries.filter(
+      (e) => e.endsWith(".js") || e.endsWith(".ts"),
+    );
 
     // Get all base names (e.g. react.logic, core.data)
     const baseNames = new Set([
-      ...yamlFiles.map(f => f.replace(/\.(yaml|yml)$/, '')),
-      ...jsFiles.map(f => f.replace(/\.(js|ts)$/, ''))
+      ...yamlFiles.map((f) => f.replace(/\.(yaml|yml)$/, "")),
+      ...jsFiles.map((f) => f.replace(/\.(js|ts)$/, "")),
     ]);
 
     for (const baseName of baseNames) {
-      const parts = baseName.split('.');
-      const framework = ['core'].includes(parts[0]) ? null : parts[0];
-      const patternType = parts[1] || 'data';
+      const parts = baseName.split(".");
+      const framework = ["core"].includes(parts[0]) ? null : parts[0];
+      const patternType = parts[1] || "data";
 
       pairs.push({
         lang,
@@ -225,8 +231,8 @@ function syncPair(pair) {
   const yamlPatterns = readYamlPatterns(yamlPath);
   const jsPatterns = readJsPatterns(jsPath);
 
-  const yamlById = new Map(yamlPatterns.map(p => [p.id, p]));
-  const jsById = new Map(jsPatterns.map(p => [p.id, p]));
+  const yamlById = new Map(yamlPatterns.map((p) => [p.id, p]));
+  const jsById = new Map(jsPatterns.map((p) => [p.id, p]));
 
   let yamlChanged = false;
   let jsChanged = false;
@@ -266,7 +272,7 @@ function syncPair(pair) {
 }
 
 function syncAll() {
-  log('\n🔄 Syncing JS ↔ YAML...');
+  log("\n[SYNC] Syncing JS ↔ YAML...");
   const pairs = scanPatternPairs();
   let totalChanges = 0;
 
@@ -276,7 +282,7 @@ function syncAll() {
   }
 
   if (totalChanges === 0) {
-    success('All files already in sync');
+    success("All files already in sync");
   } else {
     success(`Synced ${totalChanges} file pairs`);
   }
@@ -287,7 +293,7 @@ function syncAll() {
 // ==========================================
 
 function pruneAll() {
-  log('\n✂️  Pruning patterns only in one file...');
+  log("\n[PRUNE] Pruning patterns only in one file...");
   const pairs = scanPatternPairs();
   let totalPruned = 0;
 
@@ -299,20 +305,24 @@ function pruneAll() {
 
     if (yamlPatterns.length === 0 || jsPatterns.length === 0) continue;
 
-    const yamlIds = new Set(yamlPatterns.map(p => p.id));
-    const jsIds = new Set(jsPatterns.map(p => p.id));
+    const yamlIds = new Set(yamlPatterns.map((p) => p.id));
+    const jsIds = new Set(jsPatterns.map((p) => p.id));
 
     // Find patterns only in one file
-    const onlyInYaml = yamlPatterns.filter(p => !jsIds.has(p.id));
-    const onlyInJs = jsPatterns.filter(p => !yamlIds.has(p.id));
+    const onlyInYaml = yamlPatterns.filter((p) => !jsIds.has(p.id));
+    const onlyInJs = jsPatterns.filter((p) => !yamlIds.has(p.id));
 
     if (onlyInYaml.length > 0 || onlyInJs.length > 0) {
       // Remove from YAML what's not in JS
-      const prunedYaml = yamlPatterns.filter(p => jsIds.has(p.id));
+      const prunedYaml = yamlPatterns.filter((p) => jsIds.has(p.id));
       // Remove from JS what's not in YAML
-      const prunedJs = jsPatterns.filter(p => yamlIds.has(p.id));
+      const prunedJs = jsPatterns.filter((p) => yamlIds.has(p.id));
 
-      const yamlHeader = buildYamlHeader(pair.lang, pair.framework, pair.baseName);
+      const yamlHeader = buildYamlHeader(
+        pair.lang,
+        pair.framework,
+        pair.baseName,
+      );
       const jsHeader = buildJsHeader(pair.lang, pair.framework, pair.baseName);
 
       writeYamlPatterns(yamlPath, prunedYaml, yamlHeader);
@@ -320,11 +330,11 @@ function pruneAll() {
         writeJsPatterns(jsPath, prunedJs, jsHeader);
       }
 
-      onlyInYaml.forEach(p => {
+      onlyInYaml.forEach((p) => {
         warn(`   [${baseName}] Pruned "${p.id}" — only existed in YAML`);
         totalPruned++;
       });
-      onlyInJs.forEach(p => {
+      onlyInJs.forEach((p) => {
         warn(`   [${baseName}] Pruned "${p.id}" — only existed in JS`);
         totalPruned++;
       });
@@ -332,7 +342,7 @@ function pruneAll() {
   }
 
   if (totalPruned === 0) {
-    success('Nothing to prune — all files consistent');
+    success("Nothing to prune — all files consistent");
   } else {
     success(`Pruned ${totalPruned} orphaned patterns`);
   }
@@ -343,9 +353,9 @@ function pruneAll() {
 // ==========================================
 
 function compileAll() {
-  log('\n⚙️  Compiling patterns...');
+  log("\n[COMPILE] Compiling patterns...");
   // Just call compile-patterns.js logic inline
-  const compileScript = path.join(__dirname, 'compile-patterns.js');
+  const compileScript = path.join(__dirname, "compile-patterns.js");
   require(compileScript);
 }
 
@@ -354,8 +364,8 @@ function compileAll() {
 // ==========================================
 
 function showStatus() {
-  log('\n📊 Pattern Status');
-  log('==========================================');
+  log("\n[STATUS] Pattern Status");
+  log("==========================================");
 
   const pairs = scanPatternPairs();
 
@@ -364,21 +374,21 @@ function showStatus() {
     const yamlPatterns = readYamlPatterns(yamlPath);
     const jsPatterns = readJsPatterns(jsPath);
 
-    const yamlIds = new Set(yamlPatterns.map(p => p.id));
-    const jsIds = new Set(jsPatterns.map(p => p.id));
+    const yamlIds = new Set(yamlPatterns.map((p) => p.id));
+    const jsIds = new Set(jsPatterns.map((p) => p.id));
 
-    const onlyInYaml = yamlPatterns.filter(p => !jsIds.has(p.id));
-    const onlyInJs = jsPatterns.filter(p => !yamlIds.has(p.id));
-    const inBoth = yamlPatterns.filter(p => jsIds.has(p.id));
+    const onlyInYaml = yamlPatterns.filter((p) => !jsIds.has(p.id));
+    const onlyInJs = jsPatterns.filter((p) => !yamlIds.has(p.id));
+    const inBoth = yamlPatterns.filter((p) => jsIds.has(p.id));
 
     log(`\n${baseName}:`);
     log(`   In both:     ${inBoth.length} patterns`);
 
     if (onlyInYaml.length > 0) {
-      warn(`   Only in YAML: ${onlyInYaml.map(p => p.id).join(', ')}`);
+      warn(`   Only in YAML: ${onlyInYaml.map((p) => p.id).join(", ")}`);
     }
     if (onlyInJs.length > 0) {
-      warn(`   Only in JS:   ${onlyInJs.map(p => p.id).join(', ')}`);
+      warn(`   Only in JS:   ${onlyInJs.map((p) => p.id).join(", ")}`);
     }
     if (onlyInYaml.length === 0 && onlyInJs.length === 0) {
       success(`   Fully in sync`);
@@ -386,9 +396,11 @@ function showStatus() {
   }
 
   // Check if compiled file is stale
-  log('\n==========================================');
+  log("\n==========================================");
   if (!fs.existsSync(COMPILED_FILE)) {
-    warn('patterns.compiled.yaml does not exist — run: node patterns.js compile');
+    warn(
+      "patterns.compiled.yaml does not exist — run: node patterns.js compile",
+    );
   } else {
     const compiledStat = fs.statSync(COMPILED_FILE);
     log(`   Last compiled: ${compiledStat.mtime.toISOString()}`);
@@ -401,28 +413,28 @@ function showStatus() {
 
 function buildYamlHeader(lang, framework, baseName) {
   return [
-    '# ==========================================',
+    "# ==========================================",
     `# ${lang}/${baseName}.yaml`,
-    `# ${framework ? framework + ' specific' : 'Core'} patterns for ${lang.toUpperCase()}`,
-    '# Write patterns here OR in the .js version',
-    '# Both files are synced by: node patterns.js sync',
-    '# DO NOT EDIT patterns.compiled.yaml directly',
-    '# Run: node patterns.js to sync + compile',
-    '# ==========================================',
-  ].join('\n');
+    `# ${framework ? framework + " specific" : "Core"} patterns for ${lang.toUpperCase()}`,
+    "# Write patterns here OR in the .js version",
+    "# Both files are synced by: node patterns.js sync",
+    "# DO NOT EDIT patterns.compiled.yaml directly",
+    "# Run: node patterns.js to sync + compile",
+    "# ==========================================",
+  ].join("\n");
 }
 
 function buildJsHeader(lang, framework, baseName) {
   return [
-    '// ==========================================',
+    "// ==========================================",
     `// ${lang}/${baseName}.js`,
-    `// ${framework ? framework + ' specific' : 'Core'} patterns for ${lang.toUpperCase()}`,
-    '// Write patterns here OR in the .yaml version',
-    '// Both files are synced by: node patterns.js sync',
-    '// DO NOT EDIT patterns.compiled.yaml directly',
-    '// Run: node patterns.js to sync + compile',
-    '// ==========================================',
-  ].join('\n');
+    `// ${framework ? framework + " specific" : "Core"} patterns for ${lang.toUpperCase()}`,
+    "// Write patterns here OR in the .yaml version",
+    "// Both files are synced by: node patterns.js sync",
+    "// DO NOT EDIT patterns.compiled.yaml directly",
+    "// Run: node patterns.js to sync + compile",
+    "// ==========================================",
+  ].join("\n");
 }
 
 // ==========================================
@@ -431,29 +443,29 @@ function buildJsHeader(lang, framework, baseName) {
 
 async function main() {
   const args = process.argv.slice(2);
-  const command = args[0] || 'default';
+  const command = args[0] || "default";
 
-  log('\n==========================================');
-  log('patterns.js — Pattern Management System');
-  log('==========================================');
+  log("\n==========================================");
+  log("patterns.js — Pattern Management System");
+  log("==========================================");
 
   switch (command) {
-    case 'sync':
+    case "sync":
       createBackup();
       syncAll();
       break;
 
-    case 'prune':
+    case "prune":
       createBackup();
       pruneAll();
       break;
 
-    case 'compile':
+    case "compile":
       createBackup();
       compileAll();
       break;
 
-    case 'undo': {
+    case "undo": {
       const steps = parseInt(args[1]) || 1;
       if (steps < 1 || steps > MAX_BACKUPS) {
         error(`Invalid undo steps. Must be between 1 and ${MAX_BACKUPS}`);
@@ -463,7 +475,7 @@ async function main() {
       break;
     }
 
-    case 'status':
+    case "status":
       showStatus();
       break;
 
@@ -476,7 +488,7 @@ async function main() {
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   error(`patterns.js crashed: ${err.message}`);
   console.error(err);
   process.exit(1);
